@@ -26,6 +26,7 @@ char *dotenv_strerr(int error);
 #define DOTENV_ERROR_ALLOC 101
 #define DOTENV_ERROR_KEY_INVALID 102
 
+#define DOTENV_START 0
 #define DOTENV_KEY 1
 #define DOTENV_VALUE 2
 #define DOTENV_COMMENT 4
@@ -227,6 +228,24 @@ char *dotenv_strerror(int error) {
     return "unexpected exit from dotenv_strerr";
 }
 
+/**
+ * @brief Inspects the string for common text encodings.
+ * 
+ * @param str String to check.
+ * @return int Number of bytes to skip. 
+ */
+static int dotenv_skip_bom(const char *str) {
+    // UTF-8 0xEF 0xBB 0xBF
+    // ------------------
+    if ((unsigned char)str[0] == 0xEF && 
+        (unsigned char)str[1] == 0xBB && 
+        (unsigned char)str[2] == 0xBF) {
+        return 3;
+    }
+
+    return 0;
+}
+
 int dotenv_load_from_path(const char* path) {
     DEBUG_PRINT("Path: %s\n", path);
 
@@ -246,7 +265,7 @@ int dotenv_load_from_path(const char* path) {
     DEBUG_PRINT("key size: %zu\n", key.size);
     DEBUG_PRINT("value size: %zu\n", key.size);
 
-    int which = DOTENV_KEY;
+    int parse_mode = DOTENV_START;
     int idx = 0;
     int exit_status = DOTENV_STATUS_OK;
 
@@ -255,6 +274,11 @@ int dotenv_load_from_path(const char* path) {
         DEBUG_PRINT("%s\n", chunk);
         char c = '\0';
         for (int i = 0; i < DOTENV_CHUNK_SZ; i++) {
+            if (parse_mode == DOTENV_START) {
+                i += dotenv_skip_bom(chunk);
+                parse_mode = DOTENV_KEY;
+            }
+
             c = chunk[i];
             if (c == '\0') {
                 // Note: we may encounter a null byte without an endl at the
@@ -262,20 +286,20 @@ int dotenv_load_from_path(const char* path) {
                 // chunk, but doesn't necessarily mean write the key/value.
                 break;
             } else if (c == '#') {
-                which = DOTENV_COMMENT;
-            } else if (c == '=' && which != DOTENV_VALUE) {
-                which = DOTENV_EQUAL;
+                parse_mode = DOTENV_COMMENT;
+            } else if (c == '=' && parse_mode != DOTENV_VALUE) {
+                parse_mode = DOTENV_EQUAL;
             } else if (c == '\n') {
-                which = DOTENV_ENDL;
+                parse_mode = DOTENV_ENDL;
             } else if (c < ' ' && c > '\0') {
                 // Skip control characters and unprintables
                 continue;
             }
 
             // Expand the buffer if we're out of space
-            if (which == DOTENV_VALUE && idx >= value.size) {
+            if (parse_mode == DOTENV_VALUE && idx >= value.size) {
                 exit_status = dotenv_expand_buffer(&value, DOTENV_CHUNK_SZ);
-            } else if (which == DOTENV_KEY && idx >= key.size) {
+            } else if (parse_mode == DOTENV_KEY && idx >= key.size) {
                 exit_status = dotenv_expand_buffer(&key, DOTENV_CHUNK_SZ);
             }
 
@@ -283,7 +307,7 @@ int dotenv_load_from_path(const char* path) {
                 goto cleanup; // goto considered harmful, ha
             }
 
-            if (which == DOTENV_ENDL) {
+            if (parse_mode == DOTENV_ENDL) {
                 dotenv_trim(key.buffer);
                 dotenv_trim(value.buffer);
                 exit_status = dotenv_setenv(&key, &value, idx);
@@ -294,15 +318,15 @@ int dotenv_load_from_path(const char* path) {
                 dotenv_clear_buffer(&value);
 
                 idx = 0;
-                which = DOTENV_KEY;
+                parse_mode = DOTENV_KEY;
                 break;
-            } else if (which == DOTENV_KEY) {
+            } else if (parse_mode == DOTENV_KEY) {
                 key.buffer[idx++] = c;
-            } else if (which == DOTENV_VALUE) {
+            } else if (parse_mode == DOTENV_VALUE) {
                 value.buffer[idx++] = c;
-            } else if (which == DOTENV_EQUAL) {
+            } else if (parse_mode == DOTENV_EQUAL) {
                 key.buffer[idx + 1] = '\0';
-                which = DOTENV_VALUE;
+                parse_mode = DOTENV_VALUE;
                 idx = 0;
             }
         }

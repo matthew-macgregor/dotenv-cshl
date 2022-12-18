@@ -31,7 +31,7 @@
 #define CON_RESET "\033[0m"
 
 char *dotenv_contents =
-    // "\xEF\xBB\xBF BOM=value after BOM\n" // BOM
+    "\xEF\xBB\xBF BOM=value after BOM\n" // BOM
     "\x1ELINE_FEED=line feed\n" // ignore line feed, unprintable characters 
     "\n# This is just a comment\n"
     "ZERO=VALUE_WITHOUT_ANY_SPACES # This is just a comment\n"
@@ -48,7 +48,7 @@ char *dotenv_contents =
 
 const int dotenv_expectations_len = 20;
 char *dotenv_expectations[dotenv_expectations_len] = {
-    // "BOM", "value after BOM",
+    "BOM", "value after BOM",
     "LINE_FEED", "line feed",
     "ZERO", "VALUE_WITHOUT_ANY_SPACES",
     "ONE", "value with spaces",

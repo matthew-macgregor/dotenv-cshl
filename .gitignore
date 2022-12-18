@@ -1,0 +1,4 @@
+.env
+*.o
+*.dSYM
+dotenv_test

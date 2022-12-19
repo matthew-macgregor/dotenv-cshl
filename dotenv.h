@@ -25,6 +25,7 @@ char *dotenv_strerr(int error);
 #define DOTENV_STATUS_FREED 100
 #define DOTENV_ERROR_ALLOC 101
 #define DOTENV_ERROR_KEY_INVALID 102
+#define DOTENV_ERROR_UNSUPPORTED_ENCODING 103
 
 #define DOTENV_START 0
 #define DOTENV_KEY 1
@@ -221,6 +222,8 @@ char *dotenv_strerror(int error) {
             return "failed to allocate memory";
         case DOTENV_ERROR_KEY_INVALID:
             return "variable is not POSIX safe";
+        case DOTENV_ERROR_UNSUPPORTED_ENCODING:
+            return "unsupported text encoding detected";
         default:
             return "unknown error";
     }
@@ -236,12 +239,54 @@ char *dotenv_strerror(int error) {
  */
 static int dotenv_skip_bom(const char *str) {
     // UTF-8 0xEF 0xBB 0xBF
-    // ------------------
+    // --------------------
     if ((unsigned char)str[0] == 0xEF && 
         (unsigned char)str[1] == 0xBB && 
         (unsigned char)str[2] == 0xBF) {
         return 3;
     }
+
+    // If you're sure you don't want these guardrails in place, you can save a
+    // few cycles by disabling UTF-16 and UTF-32 checks.
+    #ifndef DOTENV_DISABLE_UTF_GUARDS
+    // UTF-16 BE 0xFE OxFF
+    // ------------------
+    if ((unsigned char)str[0] == 0xFE && (unsigned char)str[1] == 0xFF) {
+        // TODO: this works, but it's clumsy and a footgun.
+        DEBUG_PRINT("Unsupported: %s detected\n", "UTF-16 BE BOM");
+        return DOTENV_ERROR_UNSUPPORTED_ENCODING;
+    }
+
+    // UTF-16 LE 0xFF 0xFE
+    // -------------------
+    if (
+        (unsigned char)str[0] == 0xFF && 
+        (unsigned char)str[1] == 0xFE &&
+        (unsigned char)str[2] != 0x00) {
+        DEBUG_PRINT("Unsupported: %s detected\n", "UTF-16 LE BOM");
+        return DOTENV_ERROR_UNSUPPORTED_ENCODING;
+    }
+
+    // UTF-32 BE 0x00 0x00 0xFE 0xFF
+    // -----------------------------
+    if ((unsigned char)str[0] == 0x00 &&
+        (unsigned char)str[1] == 0x00 &&
+        (unsigned char)str[2] == 0xFE &&
+        (unsigned char)str[3] == 0xFF) {
+        DEBUG_PRINT("Unsupported: %s detected\n", "UTF-32 BE BOM");
+        return DOTENV_ERROR_UNSUPPORTED_ENCODING;
+    }
+
+    // UTF-32 LE 0xFF 0xFE 0x00 0x00
+    // -----------------------------
+    if ((unsigned char)str[0] == 0xFF &&
+        (unsigned char)str[1] == 0xFE &&
+        (unsigned char)str[2] == 0x00 &&
+        (unsigned char)str[3] == 0x00) {
+        DEBUG_PRINT("Unsupported: %s detected\n", "UTF-32 LE BOM");
+        return DOTENV_ERROR_UNSUPPORTED_ENCODING;
+    }
+    #endif // DOTENV_DISABLE_UTF_GUARDS
 
     return 0;
 }
@@ -271,11 +316,15 @@ int dotenv_load_from_path(const char* path) {
 
     // Processes stream up to the next newline character, end or len of stream
     while(fgets(chunk, sizeof(chunk), fp) != NULL) {
-        DEBUG_PRINT("%s\n", chunk);
         char c = '\0';
         for (int i = 0; i < DOTENV_CHUNK_SZ; i++) {
             if (parse_mode == DOTENV_START) {
-                i += dotenv_skip_bom(chunk);
+                int skip = dotenv_skip_bom(chunk);
+                if (skip == DOTENV_ERROR_UNSUPPORTED_ENCODING) {
+                    exit_status = skip;
+                    goto cleanup;
+                }
+                i += skip;
                 parse_mode = DOTENV_KEY;
             }
 

@@ -43,10 +43,11 @@ char *dotenv_contents =
     "FIVE=contains-an-equals-sign=123\n"
     "UTF_8=😀😀😀😀😀\n"
     "1NUM=Starts with number\n"
+    "😀😀😀=laughing\n"
     "\n"
 ;
 
-const int dotenv_expectations_len = 20;
+const int dotenv_expectations_len = 22;
 char *dotenv_expectations[dotenv_expectations_len] = {
     "BOM", "value after BOM",
     "LINE_FEED", "line feed",
@@ -56,8 +57,9 @@ char *dotenv_expectations[dotenv_expectations_len] = {
     "THREE", "value with single quotes and a comment",
     "FOUR", "https://en.wikipedia.org/wiki/C_(programming_language)",
     "FIVE", "contains-an-equals-sign=123",
-    "UTF_8", "😀😀😀😀😀",
-    "1NUM", "Starts with number" // TODO: should this be legal?
+    "UTF_8", "😀😀😀😀😀", // TODO: should this be legal?
+    "1NUM", "Starts with number", // ?
+    "😀😀😀", "laughing" // ?
 };
 
 void assert_str_equals(char *key, char *expect_value) {
@@ -84,6 +86,8 @@ int write_test_env_file(const char* filename) {
     FILE *fp = fopen(filename, "w+");
     int retval = 0;
     if (fp) {
+        // UTF-32 LE
+        // fprintf(fp, "%c%c%c%c",  0xFF, 0xFE, 0x00, 0x00);
         fputs(dotenv_contents, fp);
     } else {
         retval = 1;

@@ -4,6 +4,10 @@
 
 ### Yet Another Dotenv?
 
+Find general information about the dotenv pattern here:
+
+https://www.dotenv.org/
+
 Doesn't every language have a dotenv parsing library? Well, yes. And they exist
 for C as well, but at the time of writing there wasn't an option that fit my
 requirements well. Here are the goals of this project:
@@ -16,6 +20,19 @@ requirements well. Here are the goals of this project:
 - Low memory footprint; doesn't need to read the entire file at once.
 
 This library is currently a WIP and not ready for production.
+
+### Platforms
+
+This library is written in standard C and should be compatible with any compiler
+that supports C99. That being said, the details of how environment variables
+work on your platform may vary and OS specific shims are (currently) not part
+of the library (Windows). This may change in a future version, and you can
+provide a shim for `setenv()`.
+
+- **macOS** (fully tested)
+- **Linux** (untested, but should work)
+- **UNIX/BSD** (untested, but should work)
+- **Windows** (untested, requires `setenv()` shim)
 
 ### Installation
 
@@ -38,6 +55,9 @@ Unlike many dotenv libraries that expect a path to a directory, `dotenv-cshl`
 expects a path to the file itself. After years of using `.env` files in projects,
 experience tells me that it's better for the programmer to explicitly set
 the location of the file; configuration not convention, but also fewer surprises.
+
+Environment variables are only loaded for the current process (by design), so
+this is not useful for setting system-wide environment variables.
 
 ### Build and Run Tests
 
@@ -70,3 +90,11 @@ is UTF-16 or UTF-32 with BOM, the library will return an error code during parse
 This policy provides some sensible guardrails without adding a lot of overhead,
 and it's expected that you can control the contents of the .env file. If you're
 sure you don't care, `#define DOTENV_DISABLE_UTF_GUARDS`.
+
+### To Do
+
+- Document compile-time options.
+- Additional tests.
+- Windows support shim and testing.
+- Linux testing.
+- UNIX/BSD testing.

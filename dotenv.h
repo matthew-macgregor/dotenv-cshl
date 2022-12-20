@@ -14,18 +14,18 @@
 int dotenv_load_from_path(const char* path);
 char *dotenv_strerr(int error);
 
+#define DOTENV_STATUS_OK 0
+#define DOTENV_STATUS_FREED 100
+#define DOTENV_ERROR_ALLOC 101
+#define DOTENV_ERROR_KEY_INVALID 102
+#define DOTENV_ERROR_UNSUPPORTED_ENCODING 103
+
 /* Implemenation */
 #ifdef DOTENV_IMPL
 
 #ifndef DOTENV_CHUNK_SZ
     #define DOTENV_CHUNK_SZ 512
 #endif
-
-#define DOTENV_STATUS_OK 0
-#define DOTENV_STATUS_FREED 100
-#define DOTENV_ERROR_ALLOC 101
-#define DOTENV_ERROR_KEY_INVALID 102
-#define DOTENV_ERROR_UNSUPPORTED_ENCODING 103
 
 #define DOTENV_START 0
 #define DOTENV_KEY 1
@@ -46,9 +46,15 @@ typedef struct dotenv_buffer {
     int status;
 } dotenv_buffer;
 
-
-
-static int dotenv_alloc_buffer(dotenv_buffer *buffer, size_t size) {
+/**
+ * @brief Allocates a dotenv_buffer structure. The caller is required to 
+ * deallocate by calling dotenv_free_buffer().
+ * 
+ * @param buffer points to the structure to be initialized.
+ * @param size n bytes of space to allocate.
+ * @return int DOTENV_STATUS_OK or DOTENV_ERROR_ALLOC
+ */
+int dotenv_alloc_buffer(dotenv_buffer *buffer, size_t size) {
     buffer->buffer = calloc(size, 1);
     if (buffer->buffer != NULL) {
         buffer->status = DOTENV_STATUS_OK;
@@ -61,17 +67,37 @@ static int dotenv_alloc_buffer(dotenv_buffer *buffer, size_t size) {
     return buffer->status;
 }
 
-static void dotenv_free_buffer(dotenv_buffer *buffer) {
+/**
+ * @brief Frees an allocated dotenv_buffer structure.
+ * 
+ * @param buffer  
+ * @return int status code.
+ */
+int dotenv_free_buffer(dotenv_buffer *buffer) {
     assert(buffer->buffer != NULL);
     assert(buffer->size > 0);
     assert(buffer->status == DOTENV_STATUS_OK);
 
     free(buffer->buffer);
+    buffer->buffer = NULL;
     buffer->size = 0;
     buffer->status = DOTENV_STATUS_FREED;
+
+    return DOTENV_STATUS_FREED;
 }
 
-static int dotenv_expand_buffer(dotenv_buffer *buffer, size_t expand_by) {
+/**
+ * @brief Expands the allocated storage of the dotenv_buffer struct.
+ * 
+ * On failure, this function will return an error status. In this case the
+ * original buffer will still be allocated and the data preserved. It is safe
+ * to free the object (and you should do so).
+ * 
+ * @param buffer 
+ * @param expand_by n bytes to expand the allocated storage.
+ * @return int status or error code.
+ */
+int dotenv_expand_buffer(dotenv_buffer *buffer, size_t expand_by) {
     assert(buffer->buffer != NULL);
     assert(buffer->size > 0);
     assert(buffer->status == DOTENV_STATUS_OK);
@@ -94,6 +120,13 @@ static int dotenv_expand_buffer(dotenv_buffer *buffer, size_t expand_by) {
     return DOTENV_STATUS_OK;
 }
 
+/**
+ * @brief Zeroes out the contents of the buffer and sets the size to 0 bytes,
+ * but retains the allocated memory. Caller is responsible to call
+ * dotenv_free_buffer().
+ * 
+ * @param buffer 
+ */
 static void dotenv_clear_buffer(dotenv_buffer *buffer) {
     assert(buffer->buffer != NULL);
     assert(buffer->size > 0);
@@ -101,7 +134,17 @@ static void dotenv_clear_buffer(dotenv_buffer *buffer) {
     memset(buffer->buffer, 0, buffer->size);
 }
 
-static int dotenv_validate_key_strict(char *str) {
+/**
+ * @brief POSIX has guidelines for the contents of environment variables. This
+ * function will return DOTENV_ERROR_KEY_INVALID if the argument contains illegal
+ * characters and DOTENV_POSIX_STRICT is defined.
+ * 
+ * If DOTENV_POSIX_STRICT is not defined, any characters > ' ' are allowed.
+ * 
+ * @param str 
+ * @return int DOTENV_ERROR_KEY_INVALID or DOTENV_STATUS_OK
+ */
+int dotenv_validate_key_strict(char *str) {
     int error = DOTENV_STATUS_OK;
 
     // First character cannot be a digit (POSIX)
@@ -132,7 +175,18 @@ static int dotenv_validate_key_strict(char *str) {
     return error;
 }
 
-static int dotenv_setenv(dotenv_buffer *key, dotenv_buffer *value, int idx) {
+/**
+ * @brief Sets the environment variable `key` to `value`. If DOTENV_POSIX_STRICT
+ * is defined, also validates that the key contains legal characters.
+ *     [a-zA-Z_]{1,}[a-zA-Z0-9_]{0,}
+ * 
+ * 
+ * @param key 
+ * @param value 
+ * @param idx 
+ * @return int DOTENV_STATUS_OK or an error code is setenv fails.
+ */
+int dotenv_setenv(dotenv_buffer *key, dotenv_buffer *value) {
     int error = DOTENV_STATUS_OK;
 
     // Enforce strict POSIX environment variable names
@@ -141,8 +195,6 @@ static int dotenv_setenv(dotenv_buffer *key, dotenv_buffer *value, int idx) {
     if (error != DOTENV_STATUS_OK) { return error; }
     #endif
 
-    value->buffer[idx + 1] = '\0';
-
     if (strlen(key->buffer) > 0) {
         error = setenv(key->buffer, value->buffer, 1);
     }
@@ -150,6 +202,12 @@ static int dotenv_setenv(dotenv_buffer *key, dotenv_buffer *value, int idx) {
     return error;
 }
 
+/**
+ * @brief Trims leading and trailing whitespace and quotes from `str`, modifying
+ * it in place.
+ * 
+ * @param str String to modify.
+ */
 static void dotenv_trim(char *str) {
     size_t orig_len = strlen(str);
     char *end;
@@ -291,6 +349,14 @@ static int dotenv_skip_bom(const char *str) {
     return 0;
 }
 
+/**
+ * @brief Loads a dotenv file located at `path` into environment variables.
+ * Note that `path` is a relative or absolute path to the .env file, not a
+ * directory.
+ * 
+ * @param path relative or absolute path to the .env file.
+ * @return int error if one occurs, or DOTENV_STATUS_OK (0)
+ */
 int dotenv_load_from_path(const char* path) {
     DEBUG_PRINT("Path: %s\n", path);
 
@@ -359,7 +425,8 @@ int dotenv_load_from_path(const char* path) {
             if (parse_mode == DOTENV_ENDL) {
                 dotenv_trim(key.buffer);
                 dotenv_trim(value.buffer);
-                exit_status = dotenv_setenv(&key, &value, idx);
+                value.buffer[idx + 1] = '\0';
+                exit_status = dotenv_setenv(&key, &value);
                 if (exit_status != DOTENV_STATUS_OK) {
                     goto cleanup;
                 }
@@ -384,7 +451,8 @@ int dotenv_load_from_path(const char* path) {
     // If we reach the final null byte of the final chunk without a newline
     // character, we need to write the final key/value pair if they were
     // captured above.
-    dotenv_setenv(&key, &value, idx);
+    value.buffer[idx + 1] = '\0';
+    dotenv_setenv(&key, &value);
     idx = 0;
 
     cleanup:

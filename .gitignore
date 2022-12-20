@@ -1,5 +1,11 @@
-.env
-*.o
+# dotenv
+.env*
+
+# macOS
 *.dSYM
-dotenv_test
 .DS_Store
+
+# binaries
+dotenv_test
+dotenv
+*.o

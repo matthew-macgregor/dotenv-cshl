@@ -41,14 +41,23 @@ the location of the file; configuration not convention, but also fewer surprises
 
 ### Build and Run Tests
 
-The project is so simple you don't need a makefile or build system:
+The project is so simple you don't need a makefile or build system.
+
+- Tests are in the `test.c` file.
+- A simple command line utility is in the `main.c` file.
+
+The utility program expects a path to a `.env` file as the first argument. It
+reads the contents into memory and then list all environment variables.
+(Warning: if any environment variables contain secrets, these will be
+logged to stdout by this program!) This is an easy way to test that `dotenv-cshl`
+is reading your file correctly.
 
 ```sh
 # without debug output
-gcc dotenv_test.c -o dotenv_test
+gcc test.c -o test
 
 # with debug output
-gcc -g dotenv_test.c -o dotenv_test -DDOTENV_DEBUG
+gcc -g test.c -o test -DDOTENV_DEBUG
 ```
 
 ### Text Encoding
@@ -61,4 +70,3 @@ is UTF-16 or UTF-32 with BOM, the library will return an error code during parse
 This policy provides some sensible guardrails without adding a lot of overhead,
 and it's expected that you can control the contents of the .env file. If you're
 sure you don't care, `#define DOTENV_DISABLE_UTF_GUARDS`.
-

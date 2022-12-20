@@ -195,6 +195,7 @@ int dotenv_setenv(dotenv_buffer *key, dotenv_buffer *value) {
     if (error != DOTENV_STATUS_OK) { return error; }
     #endif
 
+    // okay to use strlen here, utf-8 doesn't matter
     if (strlen(key->buffer) > 0) {
         error = setenv(key->buffer, value->buffer, 1);
     }

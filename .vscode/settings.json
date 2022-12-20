@@ -16,7 +16,8 @@
         "vector": "c",
         "utility": "c",
         "assert.h": "c",
-        "__locale": "cpp"
+        "__locale": "cpp",
+        "colors.h": "c"
     },
     "C_Cpp.dimInactiveRegions": false
 }

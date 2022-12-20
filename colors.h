@@ -1,3 +1,4 @@
+#ifndef COLORS_OFF
 // Name            FG  BG
 // ----------------------
 // Black           30  40
@@ -22,3 +23,11 @@
 // Bright Cyan     96  106
 // Bright White    97  107
 #define CON_RESET "\033[0m"
+#else
+#define CON_RED ""
+#define CON_GREEN ""
+#define CON_YELLOW ""
+#define CON_BLUE ""
+#define CON_MAGENTA ""
+#define CON_RESET ""
+#endif

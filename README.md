@@ -94,7 +94,7 @@ sure you don't care, `#define DOTENV_DISABLE_UTF_GUARDS`.
 ### To Do
 
 - Document compile-time options.
-- Additional tests.
+- Additional tests, static analysis, valgrind.
 - Windows support shim and testing.
 - Linux testing.
 - UNIX/BSD testing.

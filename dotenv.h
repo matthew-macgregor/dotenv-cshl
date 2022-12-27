@@ -368,8 +368,8 @@ int dotenv_load_from_path(const char* path) {
 
     char chunk[DOTENV_CHUNK_SZ];
     memset(chunk, 0, DOTENV_CHUNK_SZ);
-    dotenv_buffer key = { NULL, 0 };
-    dotenv_buffer value = { NULL, 0 };
+    dotenv_buffer key = { NULL, 0, DOTENV_STATUS_OK };
+    dotenv_buffer value = { NULL, 0, DOTENV_STATUS_OK };
 
     dotenv_alloc_buffer(&key, DOTENV_CHUNK_SZ);
     dotenv_alloc_buffer(&value, DOTENV_CHUNK_SZ);
@@ -378,7 +378,7 @@ int dotenv_load_from_path(const char* path) {
     DEBUG_PRINT("value size: %zu\n", key.size);
 
     int parse_mode = DOTENV_START;
-    int idx = 0;
+    size_t idx = 0;
     int exit_status = DOTENV_STATUS_OK;
 
     // Processes stream up to the next newline character, end or len of stream

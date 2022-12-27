@@ -9,3 +9,4 @@
 dotenv_test
 dotenv
 *.o
+test

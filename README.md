@@ -29,8 +29,8 @@ work on your platform may vary and OS specific shims are (currently) not part
 of the library (Windows). This may change in a future version, and you can
 provide a shim for `setenv()`.
 
-- **macOS** (fully tested)
-- **Linux** (untested, but should work)
+- **macOS** (tested, works)
+- **Linux** (tested, works)
 - **UNIX/BSD** (untested, but should work)
 - **Windows** (untested, requires `setenv()` shim)
 

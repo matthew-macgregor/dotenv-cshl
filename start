@@ -1,0 +1,53 @@
+#!/bin/bash
+
+[ $? = 0 ] || die "Error parsing arguments."
+
+function usage () {
+    echo "./start -e|--engine=[podman,docker] -b|--build"
+}
+
+while true; do
+    case $1 in
+        -b|--build)
+            MODE="BUILD"; shift; continue
+        ;;
+        -h|--help)
+            usage
+            exit 0
+        ;;
+        -e|--engine)
+            CONTAINER_ENGINE=$2; shift; shift; continue
+        ;;
+        --)
+            # no more arguments to parse
+            break
+        ;;
+        *)
+            [[ -z $1 ]] && break
+            printf "Unknown option %s\n" "$1"
+            exit 1
+        ;;
+    esac
+done
+
+if [[ -z "$CONTAINER_ENGINE" ]]; then
+    CONTAINER_ENGINE=podman
+fi
+
+case $CONTAINER_ENGINE in
+    docker|podman) ;;
+    *) echo "Unknown container engine: $CONTAINER_ENGINE"; exit 1 ;;
+esac
+
+if [[ "$CONTAINER_ENGINE" == podman ]]; then
+    podman machine info | grep 'MachineState: Running'
+    if [[ $? -gt 0 ]]; then
+        podman machine start
+    fi
+fi
+
+if [[ $MODE == "BUILD" ]]; then
+    $CONTAINER_ENGINE build ./.devcontainer/ --tag alpine-gcc
+fi
+
+$CONTAINER_ENGINE run --rm -it -v $(pwd):/workspace alpine-gcc

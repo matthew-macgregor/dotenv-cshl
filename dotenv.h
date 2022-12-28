@@ -10,6 +10,10 @@
 #include <ctype.h>
 #include <fcntl.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Interface */
 int dotenv_load_from_path(const char* path);
 char *dotenv_strerr(int error);
@@ -55,7 +59,7 @@ typedef struct dotenv_buffer {
  * @return int DOTENV_STATUS_OK or DOTENV_ERROR_ALLOC
  */
 int dotenv_alloc_buffer(dotenv_buffer *buffer, size_t size) {
-    buffer->buffer = calloc(size, 1);
+    buffer->buffer = (char*) calloc(size, 1);
     if (buffer->buffer != NULL) {
         buffer->status = DOTENV_STATUS_OK;
         buffer->size = size;
@@ -105,7 +109,7 @@ int dotenv_expand_buffer(dotenv_buffer *buffer, size_t expand_by) {
     DEBUG_PRINT("\nExpanding buffer by %zu\n", expand_by);
 
     char *temp;
-    temp = realloc(buffer->buffer, buffer->size + expand_by);
+    temp = (char*) realloc(buffer->buffer, buffer->size + expand_by);
     if (temp == NULL) {
         buffer->status = DOTENV_ERROR_ALLOC;
         return DOTENV_ERROR_ALLOC;
@@ -265,7 +269,7 @@ static void dotenv_trim(char *str) {
     return;
 }
 
-char *dotenv_strerror(int error) {
+const char *dotenv_strerror(int error) {
     // TODO: dotenv sets its error range > 100 to avoid the obvious POSIX codes
     // but I'm not absolutely sure that this is right and needs more research.
     if (error < 100) {
@@ -465,4 +469,8 @@ int dotenv_load_from_path(const char* path) {
 }
 
 #endif /* DOTENV_IMPL */
+
+#ifdef __cplusplus
+}
+#endif
 #endif /* DOTENV_H */

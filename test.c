@@ -8,7 +8,7 @@
 
 #define DOTENV_EXPECTATIONS_LEN 22
 
-char *dotenv_contents =
+const char *dotenv_contents =
     "\xEF\xBB\xBF BOM=value after BOM\n" // BOM
     "\x1ELINE_FEED=line feed\n" // ignore line feed, unprintable characters 
     "\n# This is just a comment\n"
@@ -25,7 +25,7 @@ char *dotenv_contents =
     "\n"
 ;
 
-char *dotenv_expectations[DOTENV_EXPECTATIONS_LEN] = {
+const char *dotenv_expectations[DOTENV_EXPECTATIONS_LEN] = {
     "BOM", "value after BOM",
     "LINE_FEED", "line feed",
     "ZERO", "VALUE_WITHOUT_ANY_SPACES",
@@ -39,7 +39,7 @@ char *dotenv_expectations[DOTENV_EXPECTATIONS_LEN] = {
     "😀😀😀", "laughing" // ?
 };
 
-void assert_str_equals(char *key, char *expect_value) {
+void assert_str_equals(const char *key, const char *expect_value) {
     char *value = getenv(key);
     printf(
         CON_GREEN "Testing %s%s %s=>%s <%s> == <%s> ", 
@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
     }
 
     for (int i = 0; i < DOTENV_EXPECTATIONS_LEN; i += 2) {
-        char *key = dotenv_expectations[i];
+        const char *key = dotenv_expectations[i];
         if (key != NULL) {
             assert_str_equals(key, dotenv_expectations[i + 1]);
         }

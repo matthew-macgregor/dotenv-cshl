@@ -32,6 +32,8 @@ provide a shim for `setenv()`.
 - **macOS** (tested, works)
     - Apple clang version 14.0.0 (clang-1400.0.29.202) / macOS 12.6.1 **ok**
 - **Linux** (tested, works)
+    - gcc version 10.3.1 20210424 (Alpine 10.3.1_git20210424) **ok**
+    - chibicc (version ? Alpine Linux v3.14)
 - **UNIX/BSD** (untested, but should work)
 - **Windows** (untested, requires `setenv()` shim)
 

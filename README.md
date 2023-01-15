@@ -30,6 +30,7 @@ of the library (Windows). This may change in a future version, and you can
 provide a shim for `setenv()`.
 
 - **macOS** (tested, works)
+    - Apple clang version 14.0.0 (clang-1400.0.29.202) / macOS 12.6.1 **ok**
 - **Linux** (tested, works)
 - **UNIX/BSD** (untested, but should work)
 - **Windows** (untested, requires `setenv()` shim)

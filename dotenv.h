@@ -39,9 +39,10 @@ char *dotenv_strerr(int error);
 #define DOTENV_ENDL 32
 
 #ifdef DOTENV_DEBUG
-    #define DEBUG_PRINT(s, ...) printf(s, __VA_ARGS__)
+    #include <assert.h>
+    #define DOTENV_DEBUG_PRINT(s, ...) printf(s, __VA_ARGS__)
 #else
-    #define DEBUG_PRINT(s, ...)
+    #define DOTENV_DEBUG_PRINT(s, ...)
 #endif
 
 typedef struct dotenv_buffer {
@@ -106,20 +107,23 @@ int dotenv_expand_buffer(dotenv_buffer *buffer, size_t expand_by) {
     assert(buffer->size > 0);
     assert(buffer->status == DOTENV_STATUS_OK);
 
-    DEBUG_PRINT("\nExpanding buffer by %zu\n", expand_by);
+    DOTENV_DEBUG_PRINT("\nExpanding buffer by %zu\n", expand_by);
 
-    char *temp;
-    temp = (char*) realloc(buffer->buffer, buffer->size + expand_by);
-    if (temp == NULL) {
+    char *tmp = (char*) realloc(buffer->buffer, buffer->size + expand_by);
+    if (tmp == NULL) {
+        // Buffer still points to the original memory block, which will need
+        // to be freed later.
         buffer->status = DOTENV_ERROR_ALLOC;
         return DOTENV_ERROR_ALLOC;
     }
 
-    buffer->buffer = temp;
+    buffer->buffer = tmp;
+    // Zeroes the newly allocated memory to avoid a valgrind warning
+    memset(buffer->buffer + buffer->size, 0, expand_by);
     buffer->size += expand_by;
 
-    DEBUG_PRINT("Address of: %p\n", buffer->buffer);
-    DEBUG_PRINT("Buffer size: %zu\n", buffer->size);
+    DOTENV_DEBUG_PRINT("Address of: %p\n", buffer->buffer);
+    DOTENV_DEBUG_PRINT("Buffer size: %zu\n", buffer->size);
 
     return DOTENV_STATUS_OK;
 }
@@ -316,7 +320,7 @@ static int dotenv_skip_bom(const char *str) {
     // ------------------
     if ((unsigned char)str[0] == 0xFE && (unsigned char)str[1] == 0xFF) {
         // TODO: this works, but it's clumsy and a footgun.
-        DEBUG_PRINT("Unsupported: %s detected\n", "UTF-16 BE BOM");
+        DOTENV_DEBUG_PRINT("Unsupported: %s detected\n", "UTF-16 BE BOM");
         return DOTENV_ERROR_UNSUPPORTED_ENCODING;
     }
 
@@ -326,7 +330,7 @@ static int dotenv_skip_bom(const char *str) {
         (unsigned char)str[0] == 0xFF && 
         (unsigned char)str[1] == 0xFE &&
         (unsigned char)str[2] != 0x00) {
-        DEBUG_PRINT("Unsupported: %s detected\n", "UTF-16 LE BOM");
+        DOTENV_DEBUG_PRINT("Unsupported: %s detected\n", "UTF-16 LE BOM");
         return DOTENV_ERROR_UNSUPPORTED_ENCODING;
     }
 
@@ -336,7 +340,7 @@ static int dotenv_skip_bom(const char *str) {
         (unsigned char)str[1] == 0x00 &&
         (unsigned char)str[2] == 0xFE &&
         (unsigned char)str[3] == 0xFF) {
-        DEBUG_PRINT("Unsupported: %s detected\n", "UTF-32 BE BOM");
+        DOTENV_DEBUG_PRINT("Unsupported: %s detected\n", "UTF-32 BE BOM");
         return DOTENV_ERROR_UNSUPPORTED_ENCODING;
     }
 
@@ -346,7 +350,7 @@ static int dotenv_skip_bom(const char *str) {
         (unsigned char)str[1] == 0xFE &&
         (unsigned char)str[2] == 0x00 &&
         (unsigned char)str[3] == 0x00) {
-        DEBUG_PRINT("Unsupported: %s detected\n", "UTF-32 LE BOM");
+        DOTENV_DEBUG_PRINT("Unsupported: %s detected\n", "UTF-32 LE BOM");
         return DOTENV_ERROR_UNSUPPORTED_ENCODING;
     }
     #endif // DOTENV_DISABLE_UTF_GUARDS
@@ -363,7 +367,7 @@ static int dotenv_skip_bom(const char *str) {
  * @return int error if one occurs, or DOTENV_STATUS_OK (0)
  */
 int dotenv_load_from_path(const char* path) {
-    DEBUG_PRINT("Path: %s\n", path);
+    DOTENV_DEBUG_PRINT("Path: %s\n", path);
 
     FILE *fp = fopen(path, "r");
     if(fp == NULL) {
@@ -378,8 +382,8 @@ int dotenv_load_from_path(const char* path) {
     dotenv_alloc_buffer(&key, DOTENV_CHUNK_SZ);
     dotenv_alloc_buffer(&value, DOTENV_CHUNK_SZ);
 
-    DEBUG_PRINT("key size: %zu\n", key.size);
-    DEBUG_PRINT("value size: %zu\n", key.size);
+    DOTENV_DEBUG_PRINT("key size: %zu\n", key.size);
+    DOTENV_DEBUG_PRINT("value size: %zu\n", key.size);
 
     int parse_mode = DOTENV_START;
     size_t idx = 0;
@@ -464,6 +468,11 @@ int dotenv_load_from_path(const char* path) {
         dotenv_free_buffer(&key);
         dotenv_free_buffer(&value);
         fclose(fp);
+
+    #ifdef DOTENV_DEBUG
+    assert(key.buffer == NULL);
+    assert(value.buffer == NULL);
+    #endif
 
     return exit_status;
 }

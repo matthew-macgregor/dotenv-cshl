@@ -91,6 +91,19 @@ This policy provides some sensible guardrails without adding a lot of overhead,
 and it's expected that you can control the contents of the .env file. If you're
 sure you don't care, `#define DOTENV_DISABLE_UTF_GUARDS`.
 
+### Known Bugs & Issues
+- Valgrind has "still reachable" warnings when linking with musl libc.
+
+### Support for Small C Compilers
+
+- `chibicc`: 01-14-2022 tested/working. On Alpine, you need to include "stdarg.h"
+in your build command. ([Alpine support](https://github.com/matthew-macgregor/chibicc/tree/alpine)
+is in my fork of `chibicc`.)
+
+```sh
+./chibicc -include stdarg.h main.c -o main.chibi
+```
+
 ### To Do
 
 - Document compile-time options.

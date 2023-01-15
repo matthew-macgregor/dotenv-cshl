@@ -10,3 +10,8 @@ dotenv_test
 dotenv
 *.o
 test
+
+# chibicc
+chibicc
+main.chibi
+stdarg.h

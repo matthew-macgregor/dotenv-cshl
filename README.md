@@ -33,6 +33,7 @@ provide a shim for `setenv()`.
     - Apple clang version 14.0.0 (clang-1400.0.29.202) / macOS 12.6.1 **ok**
 - **Linux** (tested, works)
     - gcc version 10.3.1 20210424 (Alpine 10.3.1_git20210424) **ok**
+    - gcc version 11.3.0 (Ubuntu 11.3.0-1ubuntu1~22.04) **ok**
     - chibicc (version ? Alpine Linux v3.14)
 - **UNIX/BSD** (untested, but should work)
 - **Windows** (untested, requires `setenv()` shim)
@@ -100,8 +101,7 @@ sure you don't care, `#define DOTENV_DISABLE_UTF_GUARDS`.
 ### Support for Small C Compilers
 
 - `chibicc`: 01-14-2022 tested/working. On Alpine, you need to include "stdarg.h"
-in your build command. ([Alpine support](https://github.com/matthew-macgregor/chibicc/tree/alpine)
-is in my fork of `chibicc`.)
+in your build command. ([Alpine support](https://github.com/matthew-macgregor/chibicc/tree/alpine) is in my fork of `chibicc`.)
 
 ```sh
 ./chibicc -include stdarg.h main.c -o main.chibi
